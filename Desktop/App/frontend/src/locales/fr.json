@@ -1,0 +1,68 @@
+{
+  "dashboard": {
+    "title": "Tableau de Bord",
+    "description": "Vue d'ensemble de vos activités.",
+    "totalRevenue": "Total Revenue",
+    "yearlyRevenue": "Yearly Revenue",
+    "totalActive": "Total Active"
+  },
+  "nav": {
+    "dashboard": "Tableau de Bord",
+    "employees": "Gestion Employés",
+    "clients": "Gestion Clients",
+    "subscriptions": "Abonnements"
+  },
+  "auth": {
+    "login": "Connexion",
+    "register": "Inscription",
+    "logout": "Déconnexion",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "name": "Nom",
+    "submit": "Envoyer"
+  },
+  "common": {
+    "loading": "Chargement des données...",
+    "noResults": "Aucun résultat trouvé.",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "lightMode": "Mode Clair",
+    "darkMode": "Mode Sombre",
+    "confirmDelete": "Confirmer la suppression"
+  },
+  "clients": {
+    "title": "Gestion Clients",
+    "create": "Créer un client",
+    "edit": "Modifier le client",
+    "name": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "address": "Adresse"
+  },
+  "employees": {
+    "title": "Gestion Employés",
+    "create": "Créer un employé",
+    "edit": "Modifier le profil",
+    "name": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "role": "Rôle",
+    "department": "Département"
+  },
+  "subscriptions": {
+    "title": "Abonnements",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "status": "Statut",
+    "amount": "Montant",
+    "active": "Actif",
+    "suspendu": "Suspendu",
+    "expiré": "Expiré",
+    "annulé": "Annulé"
+  }
+}
