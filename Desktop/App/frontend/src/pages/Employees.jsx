@@ -6,6 +6,7 @@ import {
   updateEmployee,
   deleteEmployee,
 } from "../features/employees/employeesSlice";
+import { useTranslation } from "react-i18next";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Trash2,
@@ -22,16 +23,15 @@ import {
   Lock,
   Shield,
   Filter,
+  AlertTriangle,
 } from "lucide-react";
 import Modal from "../components/ui/Modal";
-import ConfirmDialog from "../components/ui/ConfirmDialog";
 import Pagination from "../components/ui/Pagination";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import EmptyState from "../components/ui/EmptyState";
 import { getInitials, getAvatarStyle } from "../utils/helpers";
 
 const ITEMS_PER_PAGE = 6;
-
 const inputClass =
   "w-full pl-10 pr-4 py-2 bg-background border border-input rounded-md outline-none focus:ring-2 focus:ring-ring transition-all text-sm placeholder:text-muted-foreground text-foreground";
 const selectClass =
@@ -47,6 +47,7 @@ const thClass =
 const tdClass = "px-6 py-4 whitespace-nowrap text-sm text-foreground";
 
 export default function Employees() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const dispatch = useAppDispatch();
   const { items: employees, loading } = useAppSelector((s) => s.employees);
@@ -54,8 +55,11 @@ export default function Employees() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+
   const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [transferToId, setTransferToId] = useState("");
+
   const [editForm, setEditForm] = useState({
     nom: "",
     email: "",
@@ -63,6 +67,7 @@ export default function Employees() {
     password: "",
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     dispatch(fetchEmployees());
@@ -103,51 +108,68 @@ export default function Employees() {
       );
       setIsSaving(false);
       if (updateEmployee.fulfilled.match(result)) {
-        toast.success("Profil mis à jour !");
+        toast.success(t("employees.profileUpdated"));
         setEditTarget(null);
-      } else {
-        toast.error("Erreur lors de la mise à jour.");
-      }
+      } else toast.error(t("employees.updateError"));
     },
-    [dispatch, editTarget, editForm],
+    [dispatch, editTarget, editForm, t],
   );
 
-  const handleDelete = useCallback(async () => {
-    if (!deleteTarget) return;
-    setDeleteTarget(null);
-    const loadingToast = toast.loading("Suppression...");
-    const result = await dispatch(deleteEmployee(deleteTarget.id));
-    if (deleteEmployee.fulfilled.match(result)) {
-      toast.success("Employé supprimé", { id: loadingToast });
-      if (currentData.length === 1 && currentPage > 1)
-        setCurrentPage((p) => p - 1);
-    } else {
-      toast.error("Erreur suppression", { id: loadingToast });
-    }
-  }, [dispatch, deleteTarget, currentData.length, currentPage]);
+  const handleDeleteSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!deleteTarget) return;
+
+      setIsDeleting(true);
+      const loadingToast = toast.loading(t("common.deleting"));
+
+      const payload = transferToId
+        ? { id: deleteTarget.id, transfer_to_employee_id: transferToId }
+        : { id: deleteTarget.id };
+
+      const result = await dispatch(deleteEmployee(payload));
+      setIsDeleting(false);
+
+      if (deleteEmployee.fulfilled.match(result)) {
+        toast.success("Employé supprimé avec succès.", { id: loadingToast });
+        setDeleteTarget(null);
+        setTransferToId("");
+        if (currentData.length === 1 && currentPage > 1)
+          setCurrentPage((p) => p - 1);
+      } else {
+        toast.error(result.payload || t("employees.deleteError"), {
+          id: loadingToast,
+        });
+      }
+    },
+    [dispatch, deleteTarget, transferToId, currentData.length, currentPage, t],
+  );
+
+  const transferOptions = employees.filter(
+    (emp) => emp.id !== deleteTarget?.id && emp.role === "employee",
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <Toaster position="top-right" />
 
-      {/* Edit Modal */}
       <Modal
         isOpen={!!editTarget}
         onClose={() => setEditTarget(null)}
-        title="Modifier le profil"
+        title={t("employees.edit")}
         icon={Edit}
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
           {[
             {
-              label: "Nom complet",
+              label: t("employees.name"),
               icon: User,
               value: editForm.nom,
               key: "nom",
               type: "text",
             },
             {
-              label: "Email",
+              label: t("employees.email"),
               icon: Mail,
               value: editForm.email,
               key: "email",
@@ -177,7 +199,7 @@ export default function Employees() {
           ))}
           <div>
             <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
-              Rôle
+              {t("employees.role")}
             </label>
             <div className="relative">
               <Shield
@@ -191,14 +213,14 @@ export default function Employees() {
                   setEditForm({ ...editForm, role: e.target.value })
                 }
               >
-                <option value="employee">Employé</option>
-                <option value="admin">Administrateur</option>
+                <option value="employee">{t("employees.employee")}</option>
+                <option value="admin">{t("employees.admin")}</option>
               </select>
             </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
-              Mot de passe (Optionnel)
+              {t("employees.passwordOptional")}
             </label>
             <div className="relative">
               <Lock
@@ -212,7 +234,7 @@ export default function Employees() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, password: e.target.value })
                 }
-                placeholder="Nouveau mot de passe"
+                placeholder={t("employees.newPassword")}
               />
             </div>
           </div>
@@ -222,7 +244,7 @@ export default function Employees() {
               onClick={() => setEditTarget(null)}
               className={`${btnGhost} flex-1`}
             >
-              Annuler
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -234,58 +256,126 @@ export default function Employees() {
               ) : (
                 <Save size={16} />
               )}{" "}
-              Mettre à jour
+              {t("employees.updateEmployee")}
             </button>
           </div>
         </form>
       </Modal>
 
-      <ConfirmDialog
+      <Modal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDelete}
-        message={
-          <>
-            Voulez-vous vraiment supprimer{" "}
-            <strong className="text-foreground">{deleteTarget?.nom}</strong> ?
-          </>
-        }
-      />
+        onClose={() => {
+          setDeleteTarget(null);
+          setTransferToId("");
+        }}
+        title="Supprimer l'employé"
+        icon={Trash2}
+      >
+        <form onSubmit={handleDeleteSubmit} className="space-y-5">
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg flex items-start gap-3 text-sm">
+            <AlertTriangle className="shrink-0 mt-0.5" size={18} />
+            <div>
+              Êtes-vous sûr de vouloir supprimer{" "}
+              <strong>{deleteTarget?.nom}</strong> ? Cette action est
+              irréversible.
+            </div>
+          </div>
 
-      {/* Header */}
+          <div className="bg-muted/30 border border-border p-4 rounded-lg space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
+                Transférer les clients vers :
+              </label>
+              <div className="relative">
+                <Users
+                  className="absolute left-3 top-2.5 text-muted-foreground"
+                  size={16}
+                />
+                <select
+                  className={selectClass}
+                  value={transferToId}
+                  onChange={(e) => setTransferToId(e.target.value)}
+                >
+                  <option value="">
+                    -- Ignorer s'il n'a pas de clients --
+                  </option>
+                  {transferOptions.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.nom}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                <span className="font-bold text-warning">Important :</span> Si
+                cet employé possède des clients actifs, vous{" "}
+                <strong>devez obligatoirement</strong> sélectionner un employé
+                remplaçant ci-dessus pour transférer la gestion des clients et
+                abonnements. Les transactions financières resteront au nom de
+                l'ancien employé.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteTarget(null);
+                setTransferToId("");
+              }}
+              className={`${btnGhost} flex-1`}
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={isDeleting}
+              className="flex-1 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 font-medium text-sm flex items-center justify-center gap-2 transition-all"
+            >
+              {isDeleting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Trash2 size={16} />
+              )}{" "}
+              Supprimer
+            </button>
+          </div>
+        </form>
+      </Modal>
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            Gestion d'Équipe
+            {t("employees.title")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Vue d'ensemble et gestion des accès.
+            {t("employees.subtitle")}
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
           <Link to="/dashboard" className={btnGhost}>
-            <ArrowLeft size={16} /> Retour
+            <ArrowLeft size={16} /> {t("common.back")}
           </Link>
           <Link to="/employees/create" className={btnPrimary}>
-            <UserPlus size={16} /> Nouveau Membre
+            <UserPlus size={16} /> {t("employees.create")}
           </Link>
         </div>
       </div>
 
-      {/* Stats & Filters */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div
-          className={`${cardClass} lg:col-span-4 p-6 flex items-center gap-5 relative`}
+          className={`${cardClass} lg:col-span-4 p-2 flex items-center gap-5 relative`}
         >
           <div className="absolute right-0 top-0 w-32 h-32 bg-primary/5 rounded-bl-[100px] -mr-8 -mt-8" />
-          <div className="p-4 bg-primary/10 text-primary rounded-lg relative z-10 border border-primary/20">
-            <Users size={28} />
+          <div className="p-2 bg-primary/10 text-primary rounded-lg relative z-10 border border-primary/20">
+            <Users size={22} />
           </div>
           <div className="relative z-10">
             <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">
-              Total Employés
+              {t("employees.totalEmployees")}
             </p>
-            <p className="text-3xl font-bold text-foreground">
+            <p className="text-2xl font-bold text-foreground">
               {employees.length}
             </p>
           </div>
@@ -293,14 +383,14 @@ export default function Employees() {
         <div
           className={`${cardClass} lg:col-span-8 p-2 flex flex-col md:flex-row items-center gap-2`}
         >
-          <div className="relative flex-grow w-full">
+          <div className="relative grow w-full">
             <Search
               className="absolute left-3 top-2.5 text-muted-foreground"
               size={18}
             />
             <input
               type="text"
-              placeholder="Rechercher un employé..."
+              placeholder={t("employees.searchPlaceholder")}
               className={inputClass}
               value={searchTerm}
               onChange={(e) => {
@@ -330,15 +420,14 @@ export default function Employees() {
               }}
               className={selectClass}
             >
-              <option value="all">Tous les rôles</option>
-              <option value="employee">Employé</option>
-              <option value="admin">Administrateur</option>
+              <option value="all">{t("common.allRoles")}</option>
+              <option value="employee">{t("employees.employee")}</option>
+              <option value="admin">{t("employees.admin")}</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Table */}
       <div className={`${cardClass} flex flex-col min-h-[400px]`}>
         {loading ? (
           <LoadingSpinner />
@@ -348,12 +437,16 @@ export default function Employees() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr>
-                    <th className={thClass}>Membre</th>
-                    <th className={thClass}>Email</th>
+                    <th className={thClass}>{t("employees.member")}</th>
+                    <th className={thClass}>{t("employees.email")}</th>
                     {roleFilter === "all" && (
-                      <th className={`${thClass} text-center`}>Rôle</th>
+                      <th className={`${thClass} text-center`}>
+                        {t("employees.role")}
+                      </th>
                     )}
-                    <th className={`${thClass} text-right`}>Actions</th>
+                    <th className={`${thClass} text-right`}>
+                      {t("common.actions")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -389,13 +482,11 @@ export default function Employees() {
                         {roleFilter === "all" && (
                           <td className={`${tdClass} text-center`}>
                             <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                                emp.role === "admin"
-                                  ? "bg-chart-4/10 text-chart-4 border-chart-4/20"
-                                  : "bg-chart-1/10 text-chart-1 border-chart-1/20"
-                              }`}
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${emp.role === "admin" ? "bg-chart-4/10 text-chart-4 border-chart-4/20" : "bg-chart-1/10 text-chart-1 border-chart-1/20"}`}
                             >
-                              {emp.role}
+                              {emp.role === "admin"
+                                ? t("employees.admin")
+                                : t("employees.employee")}
                             </span>
                           </td>
                         )}

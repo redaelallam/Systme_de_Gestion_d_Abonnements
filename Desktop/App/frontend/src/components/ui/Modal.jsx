@@ -11,7 +11,7 @@ const Modal = memo(function Modal({
 }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div
         className={`bg-card text-card-foreground rounded-lg border border-border shadow-lg w-full ${maxWidth} overflow-hidden animate-in zoom-in-95 duration-200`}
       >

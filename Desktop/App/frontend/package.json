@@ -16,6 +16,7 @@
     "axios": "^1.13.5",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.34.0",
     "i18next": "^25.8.6",
     "lovable-tagger": "^1.1.13",
     "lucide-react": "^0.563.0",

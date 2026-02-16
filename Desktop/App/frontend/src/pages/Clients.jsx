@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../hooks/useRedux";
 import {
@@ -8,6 +8,7 @@ import {
   fetchUsers,
 } from "../features/clients/clientsSlice";
 import { createSubscription } from "../features/subscriptions/subscriptionsSlice";
+import { useTranslation } from "react-i18next";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Trash2,
@@ -25,7 +26,6 @@ import {
   MapPin,
   ShieldCheck,
   Filter,
-  Eye,
   PlusCircle,
   CreditCard,
 } from "lucide-react";
@@ -40,7 +40,6 @@ import {
   calculateEndDate,
 } from "../utils/helpers";
 
-const ITEMS_PER_PAGE = 7;
 const inputClass =
   "w-full pl-10 pr-4 py-2 bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-primary transition-all text-sm placeholder:text-muted-foreground text-foreground";
 const selectClass =
@@ -56,22 +55,28 @@ const thClass =
 const tdClass = "px-6 py-4 whitespace-nowrap text-sm text-foreground";
 
 export default function Clients() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const dispatch = useAppDispatch();
+
   const {
     items: clients,
+    pagination,
     users: employees,
     loading,
   } = useAppSelector((s) => s.clients);
   const currentUser = useAppSelector((s) => s.auth.user);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+
   const [editingClient, setEditingClient] = useState(null);
   const [clientToDelete, setClientToDelete] = useState(null);
   const [subModal, setSubModal] = useState({ isOpen: false, client: null });
   const [isSaving, setIsSaving] = useState(false);
+
   const [editForm, setEditForm] = useState({
     nom: "",
     email: "",
@@ -86,11 +91,32 @@ export default function Clients() {
     statut: "Active",
   });
 
+  // Debounce logic
   useEffect(() => {
-    dispatch(fetchClients());
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch clients from API (Server-side Search & Pagination)
+  useEffect(() => {
+    dispatch(
+      fetchClients({
+        page: currentPage,
+        search: debouncedSearch,
+        employee_id: selectedEmployee,
+      }),
+    );
+  }, [dispatch, currentPage, debouncedSearch, selectedEmployee]);
+
+  // Fetch employees list for admin filter
+  useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
+  // Populate edit form
   useEffect(() => {
     if (editingClient)
       setEditForm({
@@ -101,32 +127,14 @@ export default function Clients() {
       });
   }, [editingClient]);
 
+  // Auto-calculate end date for subscription
   useEffect(() => {
-    if (subForm.dateDebut) {
+    if (subForm.dateDebut)
       setSubForm((prev) => ({
         ...prev,
         dateFin: calculateEndDate(prev.dateDebut, prev.type),
       }));
-    }
   }, [subForm.type, subForm.dateDebut]);
-
-  const filtered = useMemo(() => {
-    const s = searchTerm.toLowerCase();
-    return clients.filter((c) => {
-      const matchSearch =
-        c.nom.toLowerCase().includes(s) || c.email.toLowerCase().includes(s);
-      let matchEmp = true;
-      if (currentUser?.role === "admin" && selectedEmployee !== "all")
-        matchEmp = c.employee?.id === parseInt(selectedEmployee);
-      return matchSearch && matchEmp;
-    });
-  }, [clients, searchTerm, selectedEmployee, currentUser]);
-
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const currentData = filtered.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  );
 
   const handleUpdate = useCallback(
     async (e) => {
@@ -137,23 +145,57 @@ export default function Clients() {
       );
       setIsSaving(false);
       if (updateClient.fulfilled.match(result)) {
-        toast.success("Client mis à jour !");
+        toast.success(t("clients.clientUpdated"));
         setEditingClient(null);
-      } else toast.error("Échec de la mise à jour.");
+        // Refresh the current page to ensure fresh data
+        dispatch(
+          fetchClients({
+            page: currentPage,
+            search: debouncedSearch,
+            employee_id: selectedEmployee,
+          }),
+        );
+      } else toast.error(t("clients.updateFailed"));
     },
-    [dispatch, editingClient, editForm],
+    [
+      dispatch,
+      editingClient,
+      editForm,
+      currentPage,
+      debouncedSearch,
+      selectedEmployee,
+      t,
+    ],
   );
 
   const handleDelete = useCallback(async () => {
-    const toastId = toast.loading("Suppression...");
+    const toastId = toast.loading(t("common.deleting"));
     const result = await dispatch(deleteClient(clientToDelete.id));
     setClientToDelete(null);
     if (deleteClient.fulfilled.match(result)) {
-      toast.success("Client supprimé.", { id: toastId });
-      if (currentData.length === 1 && currentPage > 1)
+      toast.success(t("clients.clientDeleted"), { id: toastId });
+      // Go to previous page if the last item on the current page is deleted
+      if (clients.length === 1 && currentPage > 1) {
         setCurrentPage((p) => p - 1);
-    } else toast.error("Erreur.", { id: toastId });
-  }, [dispatch, clientToDelete, currentData.length, currentPage]);
+      } else {
+        dispatch(
+          fetchClients({
+            page: currentPage,
+            search: debouncedSearch,
+            employee_id: selectedEmployee,
+          }),
+        );
+      }
+    } else toast.error(t("common.error"), { id: toastId });
+  }, [
+    dispatch,
+    clientToDelete,
+    clients.length,
+    currentPage,
+    debouncedSearch,
+    selectedEmployee,
+    t,
+  ]);
 
   const handleAddSub = useCallback(
     async (e) => {
@@ -167,30 +209,35 @@ export default function Clients() {
       const result = await dispatch(createSubscription(payload));
       setIsSaving(false);
       if (createSubscription.fulfilled.match(result)) {
-        toast.success("Abonnement créé !");
+        toast.success(t("subscriptions.subscriptionCreated"));
         setSubModal({ isOpen: false, client: null });
-      } else toast.error(result.payload || "Erreur.");
+      } else toast.error(result.payload || t("common.error"));
     },
-    [dispatch, subForm, subModal, currentUser],
+    [dispatch, subForm, subModal, currentUser, t],
   );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <Toaster position="top-right" />
 
-      {/* Edit Modal */}
+      {/* Edit Client Modal */}
       <Modal
         isOpen={!!editingClient}
         onClose={() => setEditingClient(null)}
-        title="Modifier Client"
+        title={t("clients.edit")}
         icon={Edit}
       >
         <form onSubmit={handleUpdate} className="space-y-4">
           {[
-            { key: "nom", icon: User, placeholder: "Nom complet" },
-            { key: "email", icon: Mail, placeholder: "Email", type: "email" },
-            { key: "telephone", icon: Phone, placeholder: "Téléphone" },
-            { key: "adresse", icon: MapPin, placeholder: "Adresse" },
+            { key: "nom", icon: User, placeholder: t("clients.name") },
+            {
+              key: "email",
+              icon: Mail,
+              placeholder: t("clients.email"),
+              type: "email",
+            },
+            { key: "telephone", icon: Phone, placeholder: t("clients.phone") },
+            { key: "adresse", icon: MapPin, placeholder: t("clients.address") },
           ].map((f) => (
             <div key={f.key} className="relative">
               <f.icon
@@ -215,7 +262,7 @@ export default function Clients() {
               onClick={() => setEditingClient(null)}
               className={`${btnGhost} flex-1`}
             >
-              Annuler
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -227,28 +274,28 @@ export default function Clients() {
               ) : (
                 <Save size={16} />
               )}{" "}
-              Enregistrer
+              {t("common.save")}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Sub Modal */}
+      {/* Add Subscription Modal */}
       <Modal
         isOpen={subModal.isOpen}
         onClose={() => setSubModal({ isOpen: false, client: null })}
-        title="Nouvel Abonnement"
+        title={t("common.addSubscription")}
         icon={CreditCard}
         maxWidth="max-w-lg"
       >
         <p className="text-muted-foreground text-xs mb-4">
-          Pour: {subModal.client?.nom}
+          {t("subscriptions.for")}: {subModal.client?.nom}
         </p>
         <form onSubmit={handleAddSub} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-xs font-medium text-muted-foreground uppercase mb-1.5">
-                Offre
+                {t("common.offer")}
               </label>
               <select
                 className={`${inputClass} pl-4`}
@@ -257,15 +304,19 @@ export default function Clients() {
                   setSubForm({ ...subForm, type: e.target.value })
                 }
               >
-                <option value="Mensuel">Mensuel (1 Mois)</option>
-                <option value="Trimestriel">Trimestriel (3 Mois)</option>
-                <option value="Semestriel">Semestriel (6 Mois)</option>
-                <option value="Annuel">Annuel (12 Mois)</option>
+                <option value="Mensuel">{t("subscriptions.monthly")}</option>
+                <option value="Trimestriel">
+                  {t("subscriptions.quarterly")}
+                </option>
+                <option value="Semestriel">
+                  {t("subscriptions.semiAnnual")}
+                </option>
+                <option value="Annuel">{t("subscriptions.annual")}</option>
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground uppercase mb-1.5">
-                Prix (DH)
+                {t("common.price")} (DH)
               </label>
               <input
                 type="number"
@@ -280,7 +331,7 @@ export default function Clients() {
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground uppercase mb-1.5">
-                Statut
+                {t("common.status")}
               </label>
               <select
                 className={`${inputClass} pl-4`}
@@ -289,13 +340,13 @@ export default function Clients() {
                   setSubForm({ ...subForm, statut: e.target.value })
                 }
               >
-                <option value="Active">Active</option>
-                <option value="Suspendu">Suspendu</option>
+                <option value="Active">{t("subscriptions.active")}</option>
+                <option value="Suspendu">{t("subscriptions.suspended")}</option>
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground uppercase mb-1.5">
-                Date Début
+                {t("subscriptions.startDate")}
               </label>
               <input
                 type="date"
@@ -309,7 +360,7 @@ export default function Clients() {
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground uppercase mb-1.5">
-                Date Fin
+                {t("subscriptions.endDate")}
               </label>
               <input
                 type="date"
@@ -328,7 +379,7 @@ export default function Clients() {
               onClick={() => setSubModal({ isOpen: false, client: null })}
               className={`${btnGhost} flex-1`}
             >
-              Annuler
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -340,22 +391,23 @@ export default function Clients() {
               ) : (
                 <Save size={16} />
               )}{" "}
-              Créer
+              {t("common.create")}
             </button>
           </div>
         </form>
       </Modal>
 
+      {/* Delete Confirm Dialog */}
       <ConfirmDialog
         isOpen={!!clientToDelete}
         onClose={() => setClientToDelete(null)}
         onConfirm={handleDelete}
         message={
           <>
-            Voulez-vous vraiment supprimer{" "}
+            {t("common.deleteConfirmMsg")}{" "}
             <strong>{clientToDelete?.nom}</strong> ?<br />
             <span className="text-xs text-destructive">
-              Cette action est irréversible.
+              {t("common.irreversible")}
             </span>
           </>
         }
@@ -365,18 +417,16 @@ export default function Clients() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            Gestion des Clients
+            {t("clients.title")}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Gérez votre portefeuille clients efficacement.
-          </p>
+          <p className="text-muted-foreground mt-1">{t("clients.subtitle")}</p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
           <Link to="/dashboard" className={btnGhost}>
-            <ArrowLeft size={16} /> Retour
+            <ArrowLeft size={16} /> {t("common.back")}
           </Link>
           <Link to="/clients/create" className={btnPrimary}>
-            <UserPlus size={16} /> Nouveau Client
+            <UserPlus size={16} /> {t("clients.create")}
           </Link>
         </div>
       </div>
@@ -384,18 +434,19 @@ export default function Clients() {
       {/* Stats & Filters */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div
-          className={`${cardClass} lg:col-span-4 p-6 flex items-center gap-5 relative`}
+          className={`${cardClass} lg:col-span-4 p-2 flex items-center gap-5 relative`}
         >
           <div className="absolute right-0 top-0 w-32 h-32 bg-primary/5 rounded-bl-[100px] -mr-8 -mt-8" />
-          <div className="p-4 bg-primary/10 text-primary rounded-lg relative z-10">
-            <Users size={28} />
+          <div className="p-2 bg-primary/10 text-primary rounded-lg relative z-10">
+            <Users size={22} />
           </div>
           <div className="relative z-10">
             <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">
-              Total Clients
+              {t("clients.totalClients")}
             </p>
-            <p className="text-3xl font-bold text-foreground">
-              {clients.length}
+            <p className="text-2xl font-bold text-foreground">
+              {pagination.total}{" "}
+              {/* Number of clients fetched from the server */}
             </p>
           </div>
         </div>
@@ -409,13 +460,10 @@ export default function Clients() {
             />
             <input
               type="text"
-              placeholder="Rechercher par nom, email..."
+              placeholder={t("clients.searchPlaceholder")}
               className={inputClass}
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
             {searchTerm && (
               <button
@@ -440,7 +488,7 @@ export default function Clients() {
                 }}
                 className={selectClass}
               >
-                <option value="all">Tous les employés</option>
+                <option value="all">{t("common.allEmployees")}</option>
                 {employees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
                     {emp.nom}
@@ -462,14 +510,18 @@ export default function Clients() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr>
-                    <th className={thClass}>Client</th>
-                    <th className={`${thClass} text-center`}>Responsable</th>
-                    <th className={`${thClass} text-right`}>Actions</th>
+                    <th className={thClass}>{t("clients.name")}</th>
+                    <th className={`${thClass} text-center`}>
+                      {t("clients.responsible")}
+                    </th>
+                    <th className={`${thClass} text-right`}>
+                      {t("common.actions")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {currentData.length > 0 ? (
-                    currentData.map((client) => (
+                  {clients.length > 0 ? (
+                    clients.map((client) => (
                       <tr
                         key={client.id}
                         className="group hover:bg-muted/50 transition-colors cursor-pointer"
@@ -499,7 +551,7 @@ export default function Clients() {
                             </div>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">
-                              Non assigné
+                              {t("clients.notAssigned")}
                             </span>
                           )}
                         </td>
@@ -511,7 +563,7 @@ export default function Clients() {
                                 e.stopPropagation();
                               }}
                               className="p-2 text-primary hover:bg-primary/10 rounded-md transition-all"
-                              title="Ajouter un abonnement"
+                              title={t("common.addSubscription")}
                             >
                               <PlusCircle size={16} />
                             </button>
@@ -539,16 +591,19 @@ export default function Clients() {
                       </tr>
                     ))
                   ) : (
-                    <EmptyState colSpan={3} message="Aucun client trouvé" />
+                    <EmptyState colSpan={3} message={t("common.noResults")} />
                   )}
                 </tbody>
               </table>
             </div>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
+
+            {pagination.lastPage > 1 && (
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.lastPage}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </>
         )}
       </div>

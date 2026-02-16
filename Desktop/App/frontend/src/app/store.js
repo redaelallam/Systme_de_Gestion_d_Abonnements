@@ -4,6 +4,7 @@ import employeesReducer from "../features/employees/employeesSlice";
 import clientsReducer from "../features/clients/clientsSlice";
 import subscriptionsReducer from "../features/subscriptions/subscriptionsSlice";
 import dashboardReducer from "../features/dashboard/dashboardSlice";
+import themeReducer from "../features/theme/themeSlice";
 
 const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ const store = configureStore({
     clients: clientsReducer,
     subscriptions: subscriptionsReducer,
     dashboard: dashboardReducer,
+    theme: themeReducer,
   },
 });
 

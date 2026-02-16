@@ -45,12 +45,20 @@ export const updateEmployee = createAsyncThunk(
 
 export const deleteEmployee = createAsyncThunk(
   "employees/delete",
-  async (id, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      await api.delete(`/employees/${id}`);
+      const id = typeof payload === "object" ? payload.id : payload;
+      const data =
+        typeof payload === "object" && payload.transfer_to_employee_id
+          ? { transfer_to_employee_id: payload.transfer_to_employee_id }
+          : {};
+
+      await api.delete(`/employees/${id}`, { data });
       return id;
-    } catch {
-      return rejectWithValue("Erreur suppression");
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Erreur lors de la suppression",
+      );
     }
   },
 );
@@ -110,7 +118,7 @@ const employeesSlice = createSlice({
       })
       .addCase(fetchEmployeeById.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentEmployee = action.payload; // تخزين البيانات الكاملة (info, stats, etc)
+        state.currentEmployee = action.payload;
       })
       .addCase(fetchEmployeeById.rejected, (state, action) => {
         state.loading = false;
