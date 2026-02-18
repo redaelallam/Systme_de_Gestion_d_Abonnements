@@ -1,0 +1,68 @@
+{
+  "folders": [
+    {
+      "name": "backEnd",
+      "path": "../backEnd"
+    },
+    {
+      "name": "frontend",
+      "path": "../frontend"
+    }
+  ],
+  "settings": {
+    "task.allowAutomaticTasks": "on"
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Run Laravel",
+        "type": "shell",
+        "command": "php artisan serve",
+        "options": {
+          "cwd": "${workspaceFolder:backEnd}"
+        },
+        "isBackground": true,
+        "problemMatcher": [
+          {
+            "pattern": {
+              "regexp": "^$"
+            },
+            "background": {
+              "activeOnStart": true,
+              "beginsPattern": ".",
+              "endsPattern": "."
+            }
+          }
+        ],
+        "runOptions": {
+          "runOn": "folderOpen"
+        }
+      },
+      {
+        "label": "Run Vite",
+        "type": "shell",
+        "command": "npm run dev",
+        "options": {
+          "cwd": "${workspaceFolder:frontend}"
+        },
+        "isBackground": true,
+        "problemMatcher": [
+          {
+            "pattern": {
+              "regexp": "^$"
+            },
+            "background": {
+              "activeOnStart": true,
+              "beginsPattern": ".",
+              "endsPattern": "."
+            }
+          }
+        ],
+        "runOptions": {
+          "runOn": "folderOpen"
+        }
+      }
+    ]
+  }
+}
