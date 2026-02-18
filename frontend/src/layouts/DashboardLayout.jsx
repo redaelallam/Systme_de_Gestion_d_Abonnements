@@ -82,6 +82,7 @@ const SidebarLink = memo(function SidebarLink({ item, isActive, isOpen, t }) {
   return (
     <Link
       to={item.path}
+      title={!isOpen ? title : undefined}
       className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${
         isActive
           ? "bg-sidebar-primary text-sidebar-primary-fg shadow-sm"
@@ -120,6 +121,7 @@ const LanguageSwitcher = ({ isOpen }) => {
     <div className="relative">
       <button
         onClick={() => setShowDropdown((v) => !v)}
+        title={!isOpen ? `${currentLang.flag} ${currentLang.label}` : undefined}
         className="flex items-center w-full gap-3 px-4 py-2.5 rounded-lg transition-all text-sidebar-fg/80 hover:bg-sidebar-accent hover:text-sidebar-accent-fg"
       >
         <Globe size={20} />
@@ -266,6 +268,7 @@ const DashboardLayout = () => {
         <LanguageSwitcher isOpen={isSidebarOpen} />
         <button
           onClick={handleToggleTheme}
+          title={!isSidebarOpen ? (themeMode === "dark" ? t("common.lightMode") : t("common.darkMode")) : undefined}
           className="flex items-center w-full gap-3 px-4 py-2.5 rounded-lg transition-all text-sidebar-fg/80 hover:bg-sidebar-accent hover:text-sidebar-accent-fg"
         >
           {themeMode === "dark" ? <Sun size={20} /> : <Moon size={20} />}
@@ -279,6 +282,7 @@ const DashboardLayout = () => {
         </button>
         <button
           onClick={() => setShowLogoutConfirm(true)}
+          title={!isSidebarOpen ? t("auth.logout") : undefined}
           className="flex items-center w-full gap-3 px-4 py-2.5 rounded-lg transition-all text-destructive hover:bg-destructive/10"
         >
           <LogOut size={20} />
