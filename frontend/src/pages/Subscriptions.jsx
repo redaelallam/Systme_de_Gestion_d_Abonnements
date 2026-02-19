@@ -207,7 +207,11 @@ const Subscriptions = () => {
         fetchDashboardData({ year: d.getFullYear(), month: d.getMonth() + 1 }),
       );
     } else {
-      showToast.error(t("common.error", "Erreur"));
+      const errorMsg =
+        typeof result.payload === "string"
+          ? result.payload
+          : t("common.error", "Erreur");
+      showToast.error(errorMsg);
     }
 
     setDeleteModal({ isOpen: false, id: null, clientName: "" });
@@ -242,7 +246,11 @@ const Subscriptions = () => {
           }),
         );
       } else {
-        showToast.error(t("common.error", "Erreur"));
+        const errorMsg =
+          typeof result.payload === "string"
+            ? result.payload
+            : t("common.error", "Erreur");
+        showToast.error(errorMsg);
       }
     },
     [dispatch, loadSubscriptions, t],
@@ -321,7 +329,11 @@ const Subscriptions = () => {
           }),
         );
       } else {
-        showToast.error(t("common.error", "Erreur"));
+        const errorMsg =
+          typeof result.payload === "string"
+            ? result.payload
+            : t("common.error", "Erreur");
+        showToast.error(errorMsg);
       }
     },
     [dispatch, editModal.data, loadSubscriptions, t, setEditModal],
@@ -346,7 +358,11 @@ const Subscriptions = () => {
           }),
         );
       } else {
-        showToast.error(t("common.error", "Erreur"));
+        const errorMsg =
+          typeof result.payload === "string"
+            ? result.payload
+            : t("common.error", "Erreur");
+        showToast.error(errorMsg);
       }
     },
     [dispatch, renewModal.data, loadSubscriptions, t, setRenewModal],
@@ -370,7 +386,6 @@ const Subscriptions = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Delete Confirm Dialog */}
       <ConfirmDialog
         isOpen={deleteModal.isOpen}
         onClose={() =>
@@ -443,7 +458,6 @@ const Subscriptions = () => {
             </div>
           </div>
 
-          {/* Professional Filter Toolbar */}
           <div
             className={`${filterCardClass} lg:w-3/4 p-5 bg-muted/10 flex flex-col justify-center`}
           >
@@ -453,11 +467,9 @@ const Subscriptions = () => {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-4 items-center justify-between w-full">
-              {/* الحاوية الخاصة بالفلاتر تأخذ باقي المساحة المرنة */}
               <div
                 className={`grid grid-cols-1 md:grid-cols-2 ${currentUser?.role === "admin" ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-4 w-full lg:flex-1`}
               >
-                {/* Employee Filter */}
                 {currentUser?.role === "admin" && (
                   <div className="relative w-full group">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10 pointer-events-none group-focus-within:text-primary transition-colors">
@@ -487,7 +499,6 @@ const Subscriptions = () => {
                   </div>
                 )}
 
-                {/* Client Filter */}
                 <div className="relative w-full group">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10 pointer-events-none group-focus-within:text-primary transition-colors">
                     <User size={18} />
@@ -512,7 +523,6 @@ const Subscriptions = () => {
                   />
                 </div>
 
-                {/* Status Filter */}
                 <div className="relative w-full group">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10 pointer-events-none group-focus-within:text-primary transition-colors">
                     <Filter size={18} />

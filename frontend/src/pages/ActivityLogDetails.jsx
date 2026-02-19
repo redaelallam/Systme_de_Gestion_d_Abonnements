@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Database,
 } from "lucide-react";
+import showToast from "../components/ui/Toast"; // 👈 استيراد التوست
 
 const ActivityLogDetails = () => {
   const { id } = useParams();
@@ -26,6 +27,9 @@ const ActivityLogDetails = () => {
         setLog(res.data.data);
       } catch (error) {
         console.error("Erreur", error);
+        showToast.error(
+          "Erreur lors de la récupération des détails de l'activité.",
+        ); // 👈 عرض خطأ
       } finally {
         setLoading(false);
       }

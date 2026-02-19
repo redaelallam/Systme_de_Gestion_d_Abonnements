@@ -10,6 +10,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import showToast from "../components/ui/Toast"; // 👈 استيراد التوست
+
 const ActivityLogs = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -30,6 +32,9 @@ const ActivityLogs = () => {
       setPagination(res.data.pagination);
     } catch (error) {
       console.error("Erreur lors de la récupération des logs", error);
+      showToast.error(
+        "Erreur lors de la récupération des journaux d'activités.",
+      ); // 👈 عرض خطأ
     } finally {
       setLoading(false);
     }

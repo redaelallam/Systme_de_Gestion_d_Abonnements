@@ -7,7 +7,6 @@ import {
   deleteEmployee,
 } from "../features/employees/employeesSlice";
 import { useTranslation } from "react-i18next";
-import toast, { Toaster } from "react-hot-toast";
 import showToast from "../components/ui/Toast";
 import Select from "react-select";
 import {
@@ -25,8 +24,8 @@ import {
   AlertTriangle,
   Filter,
   BadgeCheck,
-  Search, // أضفنا أيقونة البحث
-  X, // أضفنا أيقونة المسح
+  Search,
+  X,
 } from "lucide-react";
 import Modal from "../components/ui/Modal";
 import Pagination from "../components/ui/Pagination";
@@ -83,7 +82,6 @@ export default function Employees() {
   const { items: employees, loading } = useAppSelector((s) => s.employees);
 
   const [roleFilter, setRoleFilter] = useState("all");
-  // حالات البحث
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,11 +103,10 @@ export default function Employees() {
     dispatch(fetchEmployees());
   }, [dispatch]);
 
-  // Debounce للبحث النصي
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-      setCurrentPage(1); // العودة للصفحة الأولى عند البحث
+      setCurrentPage(1);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -152,10 +149,16 @@ export default function Employees() {
       );
       setIsSaving(false);
       if (updateEmployee.fulfilled.match(result)) {
-        showToast.success(t("employees.profileUpdated", "Profil mis à jour avec succès"));
+        showToast.success(
+          t("employees.profileUpdated", "Profil mis à jour avec succès"),
+        );
         setEditTarget(null);
       } else {
-        showToast.error(t("employees.updateError", "Erreur lors de la mise à jour"));
+        const errorMsg =
+          typeof result.payload === "string"
+            ? result.payload
+            : t("employees.updateError", "Erreur lors de la mise à jour");
+        showToast.error(errorMsg);
       }
     },
     [dispatch, editTarget, editForm, t],
@@ -166,10 +169,14 @@ export default function Employees() {
       e.preventDefault();
       if (!deleteTarget) return;
       setIsDeleting(true);
-      const loadingToast = showToast.loading(t("common.deleting", "Suppression en cours..."));
+      const loadingToast = showToast.loading(
+        t("common.deleting", "Suppression en cours..."),
+      );
+
       const payload = transferToId
         ? { id: deleteTarget.id, transfer_to_employee_id: transferToId }
         : { id: deleteTarget.id };
+
       const result = await dispatch(deleteEmployee(payload));
       setIsDeleting(false);
 
@@ -181,7 +188,13 @@ export default function Employees() {
         if (currentData.length === 1 && currentPage > 1)
           setCurrentPage((p) => p - 1);
       } else {
-        showToast.error(result.payload || t("employees.deleteError", "Erreur de suppression"));
+        // قراءة وتمرير رسالة الخطأ بشكل صحيح (سواء كانت من الـ Payload أو الـ error الافتراضي)
+        const errorMsg =
+          result.payload ||
+          result.error?.message ||
+          t("employees.deleteError", "Erreur de suppression");
+
+        showToast.error(errorMsg);
       }
     },
     [dispatch, deleteTarget, transferToId, currentData.length, currentPage, t],
@@ -198,9 +211,6 @@ export default function Employees() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <Toaster position="top-center" />
-
-      {/* Edit Modal */}
       <Modal
         isOpen={!!editTarget}
         onClose={() => setEditTarget(null)}
@@ -314,7 +324,6 @@ export default function Employees() {
         </form>
       </Modal>
 
-      {/* Delete Modal */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => {
@@ -438,7 +447,6 @@ export default function Employees() {
           </div>
 
           <div className="w-full md:w-auto flex-grow flex flex-col md:flex-row gap-3">
-            {/* حقل البحث الجديد */}
             <div className="relative w-full group">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none z-10"

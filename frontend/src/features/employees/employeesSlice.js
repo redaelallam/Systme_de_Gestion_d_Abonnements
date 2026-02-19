@@ -48,6 +48,7 @@ export const deleteEmployee = createAsyncThunk(
   async (payload, { rejectWithValue }) => {
     try {
       const id = typeof payload === "object" ? payload.id : payload;
+
       const data =
         typeof payload === "object" && payload.transfer_to_employee_id
           ? { transfer_to_employee_id: payload.transfer_to_employee_id }
@@ -128,5 +129,6 @@ const employeesSlice = createSlice({
       });
   },
 });
+
 export const { clearCurrentEmployee } = employeesSlice.actions;
 export default employeesSlice.reducer;

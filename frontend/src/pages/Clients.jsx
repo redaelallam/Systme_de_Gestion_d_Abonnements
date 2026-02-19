@@ -187,7 +187,11 @@ export default function Clients() {
           }),
         );
       } else {
-        showToast.error(t("clients.updateFailed", "Échec de la mise à jour"));
+        const errorMsg =
+          typeof result.payload === "string"
+            ? result.payload
+            : t("clients.updateFailed", "Échec de la mise à jour");
+        showToast.error(errorMsg);
       }
     },
     [
@@ -225,7 +229,11 @@ export default function Clients() {
         );
       }
     } else {
-      showToast.error(t("common.error", "Une erreur s'est produite"));
+      const errorMsg =
+        typeof result.payload === "string"
+          ? result.payload
+          : t("common.error", "Une erreur s'est produite");
+      showToast.error(errorMsg);
     }
     setClientToDelete(null);
   }, [
@@ -265,7 +273,11 @@ export default function Clients() {
         );
         setSubModal({ isOpen: false, client: null });
       } else {
-        showToast.error(result.payload || t("common.error", "Erreur"));
+        const errorMsg =
+          typeof result.payload === "string"
+            ? result.payload
+            : t("common.error", "Erreur");
+        showToast.error(errorMsg);
       }
     },
     [dispatch, subForm, subModal, currentUser, t, setSubModal],

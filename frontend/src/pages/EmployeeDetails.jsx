@@ -26,6 +26,7 @@ import {
   RevenueTrendChart,
   SubscriptionDistChart,
 } from "../components/ChartCard";
+import showToast from "../components/ui/Toast"; // 👈 استيراد التوست
 
 const StatCard = ({
   title,
@@ -135,10 +136,24 @@ const EmployeeDetails = () => {
     };
   }, [id, selectedYear, selectedMonth, dispatch]);
 
-  const handleRefresh = () => {
-    dispatch(
-      fetchEmployeeById({ id, year: selectedYear, month: selectedMonth }),
-    );
+  // 👇 تعديل دالة التحديث لتشمل التوست
+  const handleRefresh = async () => {
+    const toastId = showToast.loading("Actualisation en cours...");
+    try {
+      const resultAction = await dispatch(
+        fetchEmployeeById({ id, year: selectedYear, month: selectedMonth }),
+      );
+      showToast.dismiss(toastId);
+
+      if (fetchEmployeeById.fulfilled.match(resultAction)) {
+        showToast.success("Données actualisées avec succès");
+      } else {
+        showToast.error("Erreur lors de l'actualisation");
+      }
+    } catch (err) {
+      showToast.dismiss(toastId);
+      showToast.error("Erreur lors de l'actualisation");
+    }
   };
 
   if (loading && !currentEmployee)
@@ -191,8 +206,6 @@ const EmployeeDetails = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-      {/* 🔴 تم إزالة <Toaster position="top-right" /> من هنا */}
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
         <div className="flex items-center gap-4">
           <button

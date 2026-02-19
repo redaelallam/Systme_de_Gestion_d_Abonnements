@@ -263,4 +263,56 @@ class EmployeeController extends Controller
             ]
         ]);
     }
+
+    public function destroy(Request $request, $id)
+    {
+        if (Auth::user()->role !== 'admin') {
+            return response()->json(['status' => false, 'message' => 'Accès non autorisé.'], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $employee = User::find($id);
+
+            if (!$employee) {
+                return response()->json(['status' => false, 'message' => 'Employé non trouvé.'], 404);
+            }
+
+            if ($request->has('transfer_to_employee_id') && !empty($request->transfer_to_employee_id)) {
+                $transferToId = $request->transfer_to_employee_id;
+
+                $targetEmployee = User::find($transferToId);
+                if (!$targetEmployee) {
+                    return response()->json(['status' => false, 'message' => 'Employé de remplacement non trouvé.'], 404);
+                }
+
+                Client::where('employee_id', $employee->id)->update(['employee_id' => $targetEmployee->id]);
+            } else {
+                $clientsCount = Client::where('employee_id', $employee->id)->count();
+                if ($clientsCount > 0) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Cet employé a des clients actifs. Veuillez les transférer avant de le supprimer.'
+                    ], 400);
+                }
+            }
+
+            $employee->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Employé supprimé avec succès.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de la suppression: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { Toaster } from "react-hot-toast";
 
 import { useAppSelector } from "./hooks/useRedux";
 
@@ -50,6 +51,14 @@ function App() {
 
   return (
     <Router>
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          className: "font-sans",
+        }}
+      />
+
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
