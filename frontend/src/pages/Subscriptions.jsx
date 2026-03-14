@@ -565,7 +565,6 @@ const Subscriptions = () => {
           </div>
         </div>
 
-        {/* Table Area */}
         <div
           className={`${cardClass} overflow-hidden flex flex-col min-h-[400px] relative`}
         >
@@ -776,7 +775,6 @@ const Subscriptions = () => {
         </div>
       </div>
 
-      {/* Edit Modal */}
       {editModal.isOpen && editModal.data && (
         <Modal
           isOpen

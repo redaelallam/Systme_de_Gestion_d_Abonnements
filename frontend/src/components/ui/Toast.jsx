@@ -1,8 +1,3 @@
-/**
- * Premium Toast System
- * Wraps react-hot-toast with icon-aware, dark-mode-ready custom toasts.
- * Includes auto-dismiss fix and manual close buttons.
- */
 import toast from "react-hot-toast";
 import {
   CheckCircle2,
@@ -10,10 +5,9 @@ import {
   AlertTriangle,
   Info,
   Loader2,
-  X, // 👈 استيراد أيقونة الإغلاق
+  X,
 } from "lucide-react";
 
-// تم إزالة pointer-events-auto من الحاوية الكبيرة لتجنب تجميد المؤقت
 const BASE =
   "flex items-start gap-3 px-4 py-3.5 rounded-xl border shadow-xl text-sm font-medium min-w-[280px] max-w-[380px]";
 
@@ -49,7 +43,6 @@ const VARIANTS = {
   },
 };
 
-// 👈 إضافة خاصية tId لكي نتمكن من إغلاق الإشعار يدوياً
 const ToastContent = ({ message, variant = "info", tId }) => {
   const { Icon, className, iconClass } = VARIANTS[variant] ?? VARIANTS.info;
   return (
@@ -57,7 +50,6 @@ const ToastContent = ({ message, variant = "info", tId }) => {
       <Icon size={18} className={iconClass} />
       <span className="leading-snug flex-1">{message}</span>
 
-      {/* 👈 زر الإغلاق اليدوي يظهر في كل الإشعارات ما عدا التحميل */}
       {tId && variant !== "loading" && (
         <button
           onClick={(e) => {
@@ -74,7 +66,6 @@ const ToastContent = ({ message, variant = "info", tId }) => {
   );
 };
 
-// حاوية الأنيميشن والطبقات العالية
 const wrapperClass = (visible) =>
   `relative z-[99999] transition-all duration-300 ${
     visible

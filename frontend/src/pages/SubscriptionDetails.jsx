@@ -77,6 +77,7 @@ const SubscriptionDetails = () => {
     dateDebut: "",
     dateFin: "",
   });
+
   const [renewForm, setRenewForm] = useState({
     type: "",
     prix: "",
@@ -129,6 +130,21 @@ const SubscriptionDetails = () => {
         dateFin: calculateEndDate(p.dateDebut, p.type),
       }));
   }, [renewForm.type, renewForm.dateDebut, renewModal]);
+
+  const handleOpenRenewModal = () => {
+    if (!subscription) return;
+
+    const today = new Date().toISOString().split("T")[0];
+
+    setRenewForm({
+      type: subscription.type,
+      prix: subscription.prix,
+      dateDebut: today,
+      dateFin: calculateEndDate(today, subscription.type),
+    });
+
+    setRenewModal(true);
+  };
 
   const handleEdit = async (e) => {
     e.preventDefault();
@@ -312,7 +328,7 @@ const SubscriptionDetails = () => {
             </button>
             {isRenewable && (
               <button
-                onClick={() => setRenewModal(true)}
+                onClick={handleOpenRenewModal}
                 className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg flex items-center gap-2 font-medium text-sm transition-all shadow-sm"
               >
                 <RefreshCw size={16} /> Renouveler

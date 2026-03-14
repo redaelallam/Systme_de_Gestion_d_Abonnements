@@ -4,7 +4,15 @@ import { useAppDispatch, useAppSelector } from "../hooks/useRedux";
 import { loginUser, clearError } from "../features/auth/authSlice";
 import { setLanguage } from "../features/theme/themeSlice";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Loader2, LayoutDashboard, Globe, ChevronDown } from "lucide-react";
+import { Toaster } from "react-hot-toast";
+import {
+  Sun,
+  Moon,
+  Loader2,
+  LayoutDashboard,
+  Globe,
+  ChevronDown,
+} from "lucide-react";
 
 const LANGUAGES = [
   { code: "en", label: "English", flag: "🇬🇧" },
@@ -20,7 +28,8 @@ export default function Login() {
   const { loading, error } = useAppSelector((s) => s.auth);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
 
-  const currentLang = LANGUAGES.find((l) => l.code === i18n.language) || LANGUAGES[1];
+  const currentLang =
+    LANGUAGES.find((l) => l.code === i18n.language) || LANGUAGES[1];
 
   const handleChange = useCallback(
     (e) => {
@@ -39,13 +48,19 @@ export default function Login() {
     [dispatch, formData, navigate],
   );
 
-  const handleLangChange = useCallback((code) => {
-    i18n.changeLanguage(code);
-    dispatch(setLanguage(code));
-    document.documentElement.setAttribute("dir", code === "ar" ? "rtl" : "ltr");
-    document.documentElement.setAttribute("lang", code);
-    setShowLangDropdown(false);
-  }, [i18n, dispatch]);
+  const handleLangChange = useCallback(
+    (code) => {
+      i18n.changeLanguage(code);
+      dispatch(setLanguage(code));
+      document.documentElement.setAttribute(
+        "dir",
+        code === "ar" ? "rtl" : "ltr",
+      );
+      document.documentElement.setAttribute("lang", code);
+      setShowLangDropdown(false);
+    },
+    [i18n, dispatch],
+  );
 
   const [theme, setTheme] = useState(
     () => localStorage.getItem("theme") || "light",
@@ -59,16 +74,22 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 transition-colors duration-300">
+      <Toaster position="top-center" reverseOrder={false} />
+
       <div className="absolute top-4 right-4 flex items-center gap-2">
-        {/* Language Selector */}
         <div className="relative">
           <button
             onClick={() => setShowLangDropdown((v) => !v)}
             className="flex items-center gap-2 px-3 py-2 rounded-full bg-card border border-border text-foreground hover:bg-muted transition-all shadow-sm text-sm font-medium"
           >
             <Globe size={16} />
-            <span>{currentLang.flag} {currentLang.label}</span>
-            <ChevronDown size={14} className={`transition-transform ${showLangDropdown ? "rotate-180" : ""}`} />
+            <span>
+              {currentLang.flag} {currentLang.label}
+            </span>
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${showLangDropdown ? "rotate-180" : ""}`}
+            />
           </button>
           {showLangDropdown && (
             <div className="absolute top-full mt-1 end-0 w-44 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50">
@@ -101,8 +122,12 @@ export default function Login() {
           <div className="mx-auto w-12 h-12 bg-primary/10 flex items-center justify-center rounded-lg mb-4">
             <LayoutDashboard className="text-primary h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("auth.loginTitle")}</h1>
-          <p className="text-muted-foreground text-sm">{t("auth.loginDescription")}</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("auth.loginTitle")}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {t("auth.loginDescription")}
+          </p>
         </div>
 
         {error && (
